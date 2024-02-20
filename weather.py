@@ -1,14 +1,16 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from PIL import Image, ImageTk
 import requests
-import datetime as dt #used to take timestamp info sent from API
-import requests #used to send requests to the API
+import webbrowser
+import keyboard
 
-# Constants
+# Spotify API credentials
+SPOTIFY_CLIENT_ID = open("SPOTIFY_CLIENT.txt", "r").read()
+SPOTIFY_CLIENT_SECRET = open("SPOTIFY_SECRET.txt", "r").read()
+
+# OpenWeatherMap API credentials
+API_KEY = open("API_KEY.txt", "r").read()
 BASE_URL = "http://api.openweathermap.org/data/2.5/weather?"
-API_KEY = open("API_KEY.txt", "r").read() #API key is stored in a separate file
-
 
 def fetch_weather(city):
     url = f"{BASE_URL}q={city}&appid={API_KEY}&units=metric"
@@ -21,6 +23,76 @@ def fetch_weather(city):
         messagebox.showerror("Error", f"Failed to fetch weather data: {e}")
         return None
 
+def get_genre(weather_description):
+    # Example logic to determine genre based on weather description
+    if "rain" in weather_description:
+        return "cozy mix"
+    elif "cloud" in weather_description:
+        return "coldplay"
+    elif "sun" in weather_description:
+        return "happy hits"
+    elif "snow" in weather_description:
+        return "christmas hits"
+    else:
+        return "party"
+
+def play_music(city):
+    data = fetch_weather(city)
+    if data:
+        weather_description = data['weather'][0]['description']
+        genre = get_genre(weather_description)
+        token = authenticate_spotify()
+        if token:
+            playlist_uri = search_playlist(genre, token)
+            if playlist_uri:
+                open_spotify_uri(playlist_uri)  # Open Spotify URI after starting playback
+                keyboard.press_and_release('space') # Press space to start playback
+            else:
+                messagebox.showinfo("Info", "No playlist found for the current weather.")
+    else:
+        messagebox.showinfo("Info", "Weather data not available.")
+
+
+def authenticate_spotify():
+    auth_url = "https://accounts.spotify.com/api/token"
+    payload = {
+        "grant_type": "client_credentials",
+        "client_id": SPOTIFY_CLIENT_ID,
+        "client_secret": SPOTIFY_CLIENT_SECRET
+    }
+    try:
+        response = requests.post(auth_url, data=payload)
+        response.raise_for_status()
+        token_data = response.json()
+        return token_data.get("access_token")
+    except requests.RequestException as e:
+        messagebox.showerror("Error", f"Failed to authenticate with Spotify: {e}")
+        return None
+
+def search_playlist(genre, token):
+    search_url = "https://api.spotify.com/v1/search"
+    headers = {"Authorization": f"Bearer {token}"}
+    params = {
+        "q": f"genre:{genre}",
+        "type": "playlist",
+        "limit": 1
+    }
+    try:
+        response = requests.get(search_url, params=params, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+        playlists = data.get("playlists", {}).get("items", [])
+        if playlists:
+            return playlists[0]["uri"]
+        return None
+    except requests.RequestException as e:
+        messagebox.showerror("Error", f"Failed to search playlist on Spotify: {e}")
+        return None
+    
+    
+
+def open_spotify_uri(uri):
+    webbrowser.open(uri)
 
 def update_weather():
     city = city_entry.get()
@@ -33,30 +105,19 @@ def update_weather():
         temp_label.config(text=f"Temperature: {data['main']['temp']}°C")
         description_label.config(text=f"Description: {data['weather'][0]['description']}")
         humidity_label.config(text=f"Humidity: {data['main']['humidity']}%")
-
-        icon_code = data['weather'][0]['icon']
-        icon_path = get_weather_icon(icon_code)
-        if icon_path:
-            image = Image.open(icon_path)
-            image = image.resize((100, 100), Image.ANTIALIAS)
-            photo = ImageTk.PhotoImage(image)
-            weather_icon_label.config(image=photo)
-            weather_icon_label.image = photo  # Keep a reference to the image to avoid garbage collection
+        play_music(city)
     else:
         temp_label.config(text="")
         description_label.config(text="")
         humidity_label.config(text="")
-        weather_icon_label.config(image="")
-
-
 
 root = tk.Tk()
-root.title("Rise and Shine")
+root.title("Weather Music Player")
 
 style = ttk.Style()
-style.configure("TFrame", background="#ececec")
+style.configure("TFrame", background="#ADD8E6")
 style.configure("TButton", background="#b1b1b1", font=("Helvetica", 12))
-style.configure("TLabel", background="#ececec", font=("Helvetica", 12))
+style.configure("TLabel", background="#ADD8E6", font=("Helvetica", 12))
 
 main_frame = ttk.Frame(root, padding="20")
 main_frame.grid(row=0, column=0, sticky="nsew")
