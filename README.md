@@ -1,7 +1,7 @@
 
 # RiseAndShine
 
-A Program that dispalys the weather and plays a playlist from Spotify according to the weather.
+A Program that dispalys the weather and plays a Spotify playlist based on the weather.
 _________________________________________________________________________________________
 
 To successfully run the program, you need to
