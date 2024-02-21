@@ -5,7 +5,9 @@ A Program that dispalys the weather and plays a Spotify playlist based on the we
 
 
 
-https://github.com/aryana4/RiseAndShine/assets/150874617/648754ac-aeec-440d-bb06-2b4779946734
+
+
+https://github.com/aryana4/RiseAndShine/assets/150874617/f81e87ed-0fe2-497b-850d-dea575c0215e
 
 
 
